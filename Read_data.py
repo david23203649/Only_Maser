@@ -10,10 +10,10 @@ def custom_formatter(value, pos):
     return f'{value:.2f}'  # Adjust the format as needed
 
 
-file_directory = r"X:\Data\Maser\Simulation\pythonProject1\Data\20240207\\"
-common_directory = r'2024-02-06Masing_DAC_70000_ssqq_g_over_delta_True.ddh5'
+file_directory = r"X:\Data\Maser\Simulation\pythonProject1\Data\20240923\\"
+common_directory = r''
 total_directory = file_directory + common_directory
-file_name = r"2024-02-08Masing_DAC_50000_ssqq_ssmm_ssss_qm_ss_g_over_delta_True.ddh5"
+file_name = r"2024-09-24Masing_DAC_100000_g4_12.566370614359172_g_over_delta_True_6timeonqqmm.ddh5"
 
 
 # nbar = load_custom_data(total_directory + 'maser.npy')
@@ -44,7 +44,7 @@ timeevo_m = data['timeevo_m']
 distant_btw_ticks = 4
 
 
-o_q = 7
+o_q = 7.08
 o_p = 12.4
 o_q_idx = np.argmin(abs(Omega_q - o_q))
 o_p_idx = np.argmin(abs(Omega_p - o_p))

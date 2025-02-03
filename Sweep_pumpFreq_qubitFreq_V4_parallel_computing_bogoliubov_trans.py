@@ -48,13 +48,7 @@ e_op_q  = a_q.dag()*a_q
 e_op_s  = a_s.dag()*a_s
 
 
-state = ['g', 'e', 'f']
-for i in range(0, n):
-    for j in range(len(state)):
-        for k in range(0, s):
-            globals()[state[j] + '_' + str(i) + '_' + str(k)] = tensor(basis(3, j), fock(n, i), fock(s, k))
-            # print(i,j,k)
-# initial state and parameter
+
 
 rho0 =  operators.density_matrix(0, 0, 0)
 
@@ -92,14 +86,23 @@ def steadysol_sweep_omega_q(Omega_q, tlist, args, g_over_delta = False ):
     gamma_cav = args['gamma_cav']
     gamma_down = args['gamma_down']
     gamma_SNAIL = args['gamma_SNAIL']
+    omega_m = args['omega_m']
+    omega_s = args['omega_s']
     Delta = args['omega_q'] - args['omega_m']
+
     if Delta == 0:
         Delta =pow(10,-6)
-    Delta_sq = args['omega_q'] - args['omega_s']
+    Delta_qs = args['omega_q'] - args['omega_s']
     Delta_sm = args['omega_m'] - args['omega_s']
     lambda_qm = g_qm / Delta
-    lambda_sq = g_sq / Delta_sq
+    lambda_qs = g_sq / Delta_qs
     lambda_sm = g_sm / Delta_sm
+
+    omega_q_prime = args['omega_q'] + lambda_qm * g_qm + lambda_qs * g_sq
+
+    omega_m_prime = omega_m - lambda_qm * g_qm
+    omega_s_prime = omega_s - lambda_qs * g_sq
+
     e_op_s = a_s.dag() * a_s
     e_op_q = a_q.dag() * a_q
     e_op_m = a_m.dag() * a_m
@@ -110,52 +113,23 @@ def steadysol_sweep_omega_q(Omega_q, tlist, args, g_over_delta = False ):
     C_SNAIL_down = lindblad_dissipator(np.sqrt(gamma_SNAIL) * (a_s))
 
     c_ops_notime = [C_maser, C_qubit_down, C_SNAIL_down]
-    if (g_over_delta == False):
 
 
 
-        """neglect the term which didnot pass RWA or is too small because of g/delta
-            For g4 : 
-                1. any term with m or m_dag
-                2. 
-                
-                """
-        H_0_qm = Delta * (a_dagger_q * a_q) - \
-                 alpha / 2 * (a_q.dag() * a_q.dag() * a_q * a_q) + \
-                 alpha / 2 * (a_q.dag() * a_q.dag() * a_m * a_m) +\
-                 g4 * (a_q * a_q * a_m.dag() * a_m.dag() + a_q.dag() * a_q.dag() * a_m * a_m) + \
-                 g4 * 6 * (a_s.dag() * a_s * a_q.dag() * a_q) +\
-                 g4 * 6 * (a_q.dag() * a_q * a_m.dag() * a_m) +\
-                 g4 * (a_s.dag() * a_s * a_s.dag() * a_s) + \
-                 g4 * (a_s.dag() * a_s.dag() * a_s * a_s)
 
-        H_0_qm = [H_0_qm,
-                  [g3 * lambda_sq * (a_s * a_q), p.SNAIL3], [g3 * lambda_sq * a_s.dag() * a_q.dag(), p.SNAIL3_dag],
-                  [g4 * lambda_sq * lambda_sm * ((a_q.dag() * a_m + a_q * a_m.dag())), p.qm_from_g4],
-                  [g5 * (a_s.dag() * a_q), p.SNAIL5], [g5 * a_s * a_q.dag(), p.SNAIL5_dag]]
+    """neglect the term which didnot pass RWA or is too small because of g/delta
+        For g4 : 
+            1. any term with m or m_dag
+            2. 
+            
+            """
+    H_0_qm = omega_q_prime * (a_q.dag() * a_q) + omega_m_prime * (a_m.dag() * a_m) + omega_s_prime * (a_s.dag() + a_s)\
+                                - (alpha / 12) * (a_q + lambda_qm * a_m + lambda_qs * a_s + a_q.dag() + lambda_qm * a_m.dag() + lambda_qs * a_s.dag())**4 \
+                                + g3 * (a_s - lambda_qs * a_q + a_s.dag() - lambda_qs * a_q.dag())**3\
+                                + g4 * (a_s - lambda_qs * a_q + a_s.dag() - lambda_qs * a_q.dag())**4
 
-
-
-    elif(g_over_delta == True):
-
-        H_0_qm = Delta * (a_dagger_q * a_q) + \
-                 g1 * (a_q.dag() * a_m + a_q * a_m.dag()) + \
-                 g4  * (a_s.dag() * a_s.dag() * a_s * a_s)  \
-                 - alpha / 2 * (a_q.dag() * a_q.dag() * a_q * a_q)  \
-                 - alpha / 2 * (lambda_qm)**2 * (a_q.dag() * a_q * a_m.dag() * a_m)  \
-                 - alpha / 2 *5* (lambda_qm)**2 * (a_q.dag() * a_q.dag() * a_m * a_m + a_q * a_q * a_m.dag() * a_m.dag())  \
-                 - alpha / 2 * (lambda_sq)**2 * (a_q.dag() * a_q * a_s.dag() * a_s )  \
-
-
-
-        H_0_qm = [H_0_qm,
-                  [g3 * lambda_sq * (a_s * a_q), p.SNAIL3], [g3 * lambda_sq * a_s.dag() * a_q.dag(), p.SNAIL3_dag]]
-                  # [0 * lambda_sq * lambda_sm * ((a_q.dag() * a_m + a_q * a_m.dag())), p.qm_from_g4],
-                  # [0 * (a_s.dag() * a_q), p.SNAIL4], [0 * a_s * a_q.dag(), p.SNAIL4_dag]]
-                  #[g5 * (a_s.dag() * a_q), p.SNAIL5], [g5 * a_s * a_q.dag(), p.SNAIL5_dag]]
-
-
-
+    H_0_qm = [H_0_qm,
+              [a_s - lambda_qs * a_q - a_s.dag() + lambda_qs * a_q.dag(), p.drive]]
 
     result = mesolve(H_0_qm, rho0, tlist, c_ops_notime, e_ops, args=args, options=opts)
 
@@ -231,12 +205,12 @@ def steadysol_sweep_omega_p(Omega_p, Omega_q, tlist, args, g_over_delta):
 
 
 #Omega_p = np.linspace(11.95,12.05,11)
-Omega_p = np.linspace(12.3 * GHz * two_pi,12.5 * GHz * two_pi,21)
-Omega_q = np.linspace(7.06 * GHz * two_pi,7.2 * GHz * two_pi,15)
-tlist = np.linspace(0,120,121)
+Omega_p = np.linspace(12.3 * GHz * two_pi,12.5 * GHz * two_pi,11)
+Omega_q = np.linspace(7.06 * GHz * two_pi,7.2 * GHz * two_pi,8)
+tlist = np.linspace(0,75,151)
 
 g_over_delta = True
-amps = [100000]
+amps = [10000]
 
 for amp in amps:
     if __name__ == '__main__':
@@ -273,9 +247,9 @@ for amp in amps:
 
 
         #Save
-        filepath = r"X:\Data\Maser\Simulation\pythonProject1\Data\20240923\\"
+        filepath = r"C:\Users\Chun-Che\OneDrive - Yale University\OneDrive - University of Pittsburgh\Simulation\PycharmProjects\pythonProject1\Data\\"
         current_date = datetime.now().strftime('%Y-%m-%d')
-        filename =  current_date + f"Masing_DAC_{amp}_g4_{args['g4']}_g_over_delta_{g_over_delta}_6timeonqqmm.ddh5"
+        filename =  current_date + f"Masing_DAC_{amp}_g4_{args['g4']}.ddh5"
         #savedata(filepath + filename, Pump_freq=Omega_p, qubit_freq=Omega_q, steadystate = nbar, time_data = tlist,amp=args['amp'], omega_s = args['omega_s']/two_pi, g_qm = args['g1']/two_pi, g3 = args['g3']/two_pi, g4 = args['g4']/two_pi, gamma_cav = args['gamma_cav']/two_pi, gamma_down = args['gamma_down']/two_pi, gamma_SNAIL = args['gamma_SNAIL']/two_pi )
         # save_with_custom_info2(nbar, 'array_data_V4',args, 'maser',filepath)
         # save_with_custom_info2(sbar, 'array_data_V4',args, 'SNAIL',filepath)
@@ -300,25 +274,7 @@ for amp in amps:
 
         save_data_and_args(filepath + filename, data_dict, **args)
 
-    ## plot
 
-        # x = len(Omega_q)
-        # y = len(Omega_p)
-        # #pyplot.figure(figsize=(y, x))
-        # distant_btw_ticks = 6
-        # x_ticks = np.arange(nbar.shape[1])[::distant_btw_ticks]
-        # y_ticks = np.arange(nbar.shape[0])[::distant_btw_ticks]
-        #
-        # # Create a 2D color plot
-        # plt.imshow(nbar, origin='lower')
-        #         #plt.scatter(x_mark, y_mark, color='red', marker='*', s=1000, label='Marked Point')
-        # plt.xlabel('$\omega_q$(GHz)')
-        # plt.ylabel('$\omega_{p}$ (GHz)')
-        #
-        # plt.colorbar(label='average photon number', fraction=0.046, pad=0.04)
-        # plt.xticks(x_ticks, [custom_formatter(value, None) for value in Omega_q[x_ticks]])
-        # plt.yticks(y_ticks, [custom_formatter(value, None) for value in Omega_p[y_ticks]])
-        #
 
     ## new plot
         plt.figure()

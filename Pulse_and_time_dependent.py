@@ -81,6 +81,11 @@ class Pulses():
         return (args['amp'] * args['func'](t, args) * np.cos(args['omega'] * t))
 
 
-    def eta_eta(self,args):
+    def eta_eta(self,t, args):
         return (args['amp'] * (
                     2 * args['omega'] * args['func'](t, args) / (args['omega'] ** 2 - args['omega_s'] ** 2))) ** 2
+
+    def SNAIL3_trans(self, t, args):
+        phi = args.get('phi', 0)
+        return args['amp'] * np.exp(-1j * (args['omega_s_prime'] + args['omega_m_prime'] - args['omega']) * t + phi) * (
+                    2 * args['omega'] * args['func'](t, args) / (args['omega'] ** 2 - args['omega_s_prime'] ** 2))

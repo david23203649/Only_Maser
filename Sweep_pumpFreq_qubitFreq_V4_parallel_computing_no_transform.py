@@ -22,6 +22,8 @@ from Pulse_and_time_dependent import Pulses
 from System_setup_class import *
 # testtttttt
 
+
+
 PI = np.pi
 two_pi= 2 * np.pi
 GHz = pow(10,3)
@@ -48,12 +50,13 @@ e_op_q  = a_q.dag()*a_q
 e_op_s  = a_s.dag()*a_s
 
 
-state = ['g', 'e', 'f']
-for i in range(0, n):
-    for j in range(len(state)):
-        for k in range(0, s):
-            globals()[state[j] + '_' + str(i) + '_' + str(k)] = tensor(basis(3, j), fock(n, i), fock(s, k))
-            # print(i,j,k)
+
+state = ['g', 'e', 'f', 'h', 'k']
+# for i in range(0, n):
+#     for j in range(len(state)):
+#         for k in range(0, s):
+#             globals()[state[j] + '_' + str(i) + '_' + str(k)] = tensor(basis(5, j), fock(n, i), fock(s, k))
+#             # print(i,j,k)
 # initial state and parameter
 
 rho0 =  operators.density_matrix(0, 0, 0)
@@ -65,9 +68,63 @@ p_bar = None  # qt.ui.TextProgressBar()
 
 p = Pulses()
 
+def find_state_index(state_density,eigenvector,number_of_eigenstate):
+    # non_zero_eigenvalues = sorted_eigenvalues[np.nonzero(sorted_eigenvalues)]
+    temp = []
+    for i in range(number_of_eigenstate):
+        temp.append(expect(state_density,eigenvector[i]))
+    closest_to_one_index = min(range(len(temp)), key=lambda i: abs(temp[i] - 1))
+    return closest_to_one_index
+def find_disspate_op_2mode(H):
+    eigen_energy, eigen_state = H.eigenstates()
+    #
+    H_dim = H.dims[0][0]
+    H_dim2 = H.dims[0][1]
+    # sorted_indices = np.argsort(eigen_energy)
+    # sorted_energies = [eigen_energy[i] for i in sorted_indices]
+    # sorted_states = [eigen_energy[i] for i in sorted_indices]
 
+    # Initialize a list for the transition operators
+    transition_ops = []
+    eigenstate_array = []
+    #print(eigen_state[0])
+    # find eigenstate for S + Q subsystem
+    # for i in range(int(H_dim)):
+    #     for j in  range(int(H_dim2)):
+    #         eigenstate_array.append([eigen_state[find_state_index(operators.density_matrix(i, j, 1), eigen_state, H_dim*H_dim2 - 1)] / two_pi])
+    #
+    # eigenstate_array = np.reshape(eigenstate_array, [75, H_dim,H_dim2])
 
-def steadysol_sweep_omega_q(Omega_q, tlist, args, g_over_delta = False ):
+    index_q_0_s_0 = find_state_index(operators.density_matrix(0, 0, 1), eigen_state, H_dim*H_dim2*3 - 1)
+    index_q_1_s_0 = find_state_index(operators.density_matrix(1, 0, 1), eigen_state, H_dim * H_dim2 * 3 - 1)
+    index_q_2_s_0 = find_state_index(operators.density_matrix(2, 0, 1), eigen_state, H_dim * H_dim2 * 3 - 1)
+    index_q_0_s_1 = find_state_index(operators.density_matrix(0, 1, 1), eigen_state, H_dim * H_dim2 * 3 - 1)
+    index_q_1_s_1 = find_state_index(operators.density_matrix(1, 1, 1), eigen_state, H_dim * H_dim2 * 3 - 1)
+    index_q_2_s_1 = find_state_index(operators.density_matrix(2, 1, 1), eigen_state, H_dim * H_dim2 * 3 - 1)
+    index_q_0_s_2 = find_state_index(operators.density_matrix(0, 2, 1), eigen_state, H_dim * H_dim2 * 3 - 1)
+    index_q_1_s_2 = find_state_index(operators.density_matrix(1, 2, 1), eigen_state, H_dim * H_dim2 * 3 - 1)
+    index_q_2_s_2 = find_state_index(operators.density_matrix(2, 2, 1), eigen_state, H_dim * H_dim2 * 3 - 1)
+    #eigenstate_array_q_0_s_0 = [eigen_state[index] / two_pi]
+
+    #print(eigenstate_array_q_0_s_0)
+    # print(eigenstate_array)
+    # print(eigenstate_array[0][0])
+    q_01_s_0 = eigen_state[index_q_0_s_0] * eigen_state[index_q_1_s_0].dag()
+    q_12_s_0 = eigen_state[index_q_1_s_0] * eigen_state[index_q_2_s_0].dag()
+    q_01_s_1 = eigen_state[index_q_0_s_1] * eigen_state[index_q_1_s_1].dag()
+    q_12_s_1 = eigen_state[index_q_1_s_1] * eigen_state[index_q_2_s_1].dag()
+    q_01_s_2 = eigen_state[index_q_0_s_2] * eigen_state[index_q_1_s_2].dag()
+    q_12_s_2 = eigen_state[index_q_1_s_2] * eigen_state[index_q_2_s_2].dag()
+
+    q_0_s_01 = eigen_state[index_q_0_s_0] * eigen_state[index_q_0_s_1].dag()
+    q_0_s_12 = eigen_state[index_q_0_s_0] * eigen_state[index_q_0_s_2].dag()
+    q_1_s_01 = eigen_state[index_q_1_s_0] * eigen_state[index_q_1_s_1].dag()
+    q_1_s_12 = eigen_state[index_q_1_s_0] * eigen_state[index_q_1_s_2].dag()
+    q_2_s_01 = eigen_state[index_q_2_s_0] * eigen_state[index_q_2_s_1].dag()
+    q_2_s_12 = eigen_state[index_q_2_s_0] * eigen_state[index_q_2_s_2].dag()
+
+    return q_01_s_0,q_12_s_0,q_01_s_1,q_12_s_1,q_01_s_2,q_12_s_2,q_0_s_01,q_0_s_12,q_1_s_01,q_1_s_12,q_2_s_01,q_2_s_12
+def steadysol_sweep_omega_q(Omega_q, tlist, args):
 
     steady_s = []
     steady_q = []
@@ -88,7 +145,8 @@ def steadysol_sweep_omega_q(Omega_q, tlist, args, g_over_delta = False ):
     g_qm = args['g_qm']
     g_sq = args['g_sq']
     g_sm = args['g_sm']
-
+    omega_m = args['omega_m']
+    omega_s = args['omega_s']
     gamma_cav = args['gamma_cav']
     gamma_down = args['gamma_down']
     gamma_SNAIL = args['gamma_SNAIL']
@@ -104,58 +162,31 @@ def steadysol_sweep_omega_q(Omega_q, tlist, args, g_over_delta = False ):
     e_op_q = a_q.dag() * a_q
     e_op_m = a_m.dag() * a_m
     e_ops = [e_op_s, e_op_q, e_op_m]
+
+    H_s = omega_s * (a_s.dag() * a_s) + g3 * (a_s + a_s.dag()) ** 3 + g4 * (a_s + a_s.dag()) ** 4
+    H_q = Omega_q * (a_q.dag() * a_q) + omega_m * (a_q.dag() * a_m) - (alpha / 12) * (a_q.dag() + a_q) ** 4
+    H_m = omega_m * (a_m.dag() * a_m)
+    H_c_sq = g_sq * (a_s.dag() + a_q) * (a_s.dag() + a_m)
+    H_c_qm = g_qm * (a_q.dag() + a_q) * (a_q.dag() + a_m)
+
+    H_s_q_subsys = H_s + H_q + H_c_sq
+
+    q_01_s_0,q_12_s_0,q_01_s_1,q_12_s_1,q_01_s_2,q_12_s_2,q_0_s_01,q_0_s_12,q_1_s_01,q_1_s_12,q_2_s_01,q_2_s_12 = find_disspate_op_2mode(H_s_q_subsys)
+
+    #print(q_01_s_0)
     C_maser = lindblad_dissipator(np.sqrt(gamma_cav) * a_m)
 
-    C_qubit_down = lindblad_dissipator(np.sqrt(gamma_down) * (a_q))
-    C_SNAIL_down = lindblad_dissipator(np.sqrt(gamma_SNAIL) * (a_s))
+    C_qubit_down = lindblad_dissipator(np.sqrt(gamma_down) * (q_01_s_0 + q_12_s_0 + q_01_s_1 + q_12_s_1 + q_01_s_2 + q_12_s_2))
+    C_SNAIL_down = lindblad_dissipator(np.sqrt(gamma_SNAIL) * (q_0_s_01 + q_0_s_12 + q_1_s_01 + q_1_s_12 + q_2_s_01 + q_2_s_12))
 
     c_ops_notime = [C_maser, C_qubit_down, C_SNAIL_down]
-    if (g_over_delta == False):
 
 
+    H_0_qm =  H_s + H_q + H_m \
+            + H_c_sq+ H_c_qm
 
-        """neglect the term which didnot pass RWA or is too small because of g/delta
-            For g4 : 
-                1. any term with m or m_dag
-                2. 
-                
-                """
-        H_0_qm = Delta * (a_dagger_q * a_q) - \
-                 alpha / 2 * (a_q.dag() * a_q.dag() * a_q * a_q) + \
-                 alpha / 2 * (a_q.dag() * a_q.dag() * a_m * a_m) +\
-                 g4 * (a_q * a_q * a_m.dag() * a_m.dag() + a_q.dag() * a_q.dag() * a_m * a_m) + \
-                 g4 * 6 * (a_s.dag() * a_s * a_q.dag() * a_q) +\
-                 g4 * 6 * (a_q.dag() * a_q * a_m.dag() * a_m) +\
-                 g4 * (a_s.dag() * a_s * a_s.dag() * a_s) + \
-                 g4 * (a_s.dag() * a_s.dag() * a_s * a_s)
-
-        H_0_qm = [H_0_qm,
-                  [g3 * lambda_sq * (a_s * a_q), p.SNAIL3], [g3 * lambda_sq * a_s.dag() * a_q.dag(), p.SNAIL3_dag],
-                  [g4 * lambda_sq * lambda_sm * ((a_q.dag() * a_m + a_q * a_m.dag())), p.qm_from_g4],
-                  [g5 * (a_s.dag() * a_q), p.SNAIL5], [g5 * a_s * a_q.dag(), p.SNAIL5_dag]]
-
-
-
-    elif(g_over_delta == True):
-
-        H_0_qm = Delta * (a_dagger_q * a_q) + \
-                 g1 * (a_q.dag() * a_m + a_q * a_m.dag()) + \
-                 g4  * (a_s.dag() * a_s.dag() * a_s * a_s)  \
-                 - alpha / 2 * (a_q.dag() * a_q.dag() * a_q * a_q)  \
-                 - alpha / 2 * (lambda_qm)**2 * (a_q.dag() * a_q * a_m.dag() * a_m)  \
-                 - alpha / 2 *5* (lambda_qm)**2 * (a_q.dag() * a_q.dag() * a_m * a_m + a_q * a_q * a_m.dag() * a_m.dag())  \
-                 - alpha / 2 * (lambda_sq)**2 * (a_q.dag() * a_q * a_s.dag() * a_s )  \
-
-
-
-        H_0_qm = [H_0_qm,
-                  [g3 * lambda_sq * (a_s * a_q), p.SNAIL3], [g3 * lambda_sq * a_s.dag() * a_q.dag(), p.SNAIL3_dag]]
-                  # [0 * lambda_sq * lambda_sm * ((a_q.dag() * a_m + a_q * a_m.dag())), p.qm_from_g4],
-                  # [0 * (a_s.dag() * a_q), p.SNAIL4], [0 * a_s * a_q.dag(), p.SNAIL4_dag]]
-                  #[g5 * (a_s.dag() * a_q), p.SNAIL5], [g5 * a_s * a_q.dag(), p.SNAIL5_dag]]
-
-
-
+    H_0_qm = [H_0_qm,
+              [a_s + a_s.dag() , p.drive]]
 
     result = mesolve(H_0_qm, rho0, tlist, c_ops_notime, e_ops, args=args, options=opts)
 
@@ -176,7 +207,7 @@ def steadysol_sweep_omega_q(Omega_q, tlist, args, g_over_delta = False ):
 
     return steady_m, steady_q, steady_s, timeevo_s_temp, timeevo_q_temp, timeevo_m_temp
 
-def steadysol_sweep_omega_p(Omega_p, Omega_q, tlist, args, g_over_delta):
+def steadysol_sweep_omega_p(Omega_p, Omega_q, tlist, args):
     start = time.time()
     if __name__ == '__main__':
 
@@ -194,7 +225,7 @@ def steadysol_sweep_omega_p(Omega_p, Omega_q, tlist, args, g_over_delta):
             args['omega'] = omega_p
 
 
-            func = partial(steadysol_sweep_omega_q,tlist = tlist, args = args, g_over_delta = g_over_delta)
+            func = partial(steadysol_sweep_omega_q,tlist = tlist, args = args)
             result = parallel_map(func, Omega_q, progress_bar=True)
             #print(result)
 
@@ -236,7 +267,7 @@ Omega_q = np.linspace(7.06 * GHz * two_pi,7.2 * GHz * two_pi,15)
 tlist = np.linspace(0,120,121)
 
 g_over_delta = True
-amps = [100000]
+amps = [10000]
 
 for amp in amps:
     if __name__ == '__main__':
@@ -264,7 +295,7 @@ for amp in amps:
                 }
 
 
-        nbar, qbar, sbar, timeevo_s, timeevo_q, timeevo_m, Omega_p, Omega_q, tlist = steadysol_sweep_omega_p(Omega_p, Omega_q, tlist, args, g_over_delta)
+        nbar, qbar, sbar, timeevo_s, timeevo_q, timeevo_m, Omega_p, Omega_q, tlist = steadysol_sweep_omega_p(Omega_p, Omega_q, tlist, args)
 
         args['func'] = str(args['func'])
 
@@ -273,9 +304,9 @@ for amp in amps:
 
 
         #Save
-        filepath = r"X:\Data\Maser\Simulation\pythonProject1\Data\20240923\\"
+        filepath = r"C:\Users\Chun-Che\OneDrive - Yale University\OneDrive - University of Pittsburgh\Simulation\PycharmProjects\pythonProject1\1.maser\data\\"
         current_date = datetime.now().strftime('%Y-%m-%d')
-        filename =  current_date + f"Masing_DAC_{amp}_g4_{args['g4']}_g_over_delta_{g_over_delta}_6timeonqqmm.ddh5"
+        filename =  current_date + f"No_transformation_Masing_DAC_{amp}_g4_{args['g4']}.ddh5"
         #savedata(filepath + filename, Pump_freq=Omega_p, qubit_freq=Omega_q, steadystate = nbar, time_data = tlist,amp=args['amp'], omega_s = args['omega_s']/two_pi, g_qm = args['g1']/two_pi, g3 = args['g3']/two_pi, g4 = args['g4']/two_pi, gamma_cav = args['gamma_cav']/two_pi, gamma_down = args['gamma_down']/two_pi, gamma_SNAIL = args['gamma_SNAIL']/two_pi )
         # save_with_custom_info2(nbar, 'array_data_V4',args, 'maser',filepath)
         # save_with_custom_info2(sbar, 'array_data_V4',args, 'SNAIL',filepath)
